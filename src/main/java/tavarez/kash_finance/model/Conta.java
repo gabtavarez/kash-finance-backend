@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import tavarez.kash_finance.util.Relogios;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -47,6 +48,6 @@ public class Conta {
 
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now(ZoneOffset.UTC);
+        this.createdAt = Relogios.agora();
     }
 }

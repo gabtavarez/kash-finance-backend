@@ -79,5 +79,6 @@ public class Transacao {
     @PrePersist
     protected void onCreate() {
         this.createdAt = Relogios.agora();
+        this.updatedAt = Relogios.agora();
     }
 }

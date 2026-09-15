@@ -8,7 +8,6 @@ import lombok.Setter;
 import tavarez.kash_finance.util.Relogios;
 
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 
 @Entity
 @Table(name = "categorias")

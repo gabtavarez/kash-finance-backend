@@ -10,6 +10,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record CriarTransferenciaRequest(
+        @NotNull(message = "Usuario e obrigatorio")
+        Long usuarioId,
+
         @NotBlank(message = "Descricao e obrigatoria")
         String descricao,
 

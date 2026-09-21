@@ -23,6 +23,7 @@ import java.util.List;
 public class TransacaoService {
 
     private static final int MESES_GERACAO_FIXA = 12;
+    private static final String TRANSACAO_NAO_ENCONTRADA = "Transacao nao encontrada";
 
     private final TransacaoRepository transacaoRepository;
     private final ContaRepository contaRepository;
@@ -31,8 +32,8 @@ public class TransacaoService {
     private final UsuarioRepository usuarioRepository;
 
     @Transactional
-    public List<TransacaoResponse> criar(Long usuarioId, CriarTransacaoRequest request) {
-        Usuario usuario = usuarioRepository.findById(usuarioId)
+    public List<TransacaoResponse> criar(CriarTransacaoRequest request) {
+        Usuario usuario = usuarioRepository.findById(request.usuarioId())
                 .orElseThrow(() -> new EntityNotFoundException("Usuario nao encontrado"));
 
         Conta conta = contaRepository.findById(request.contaId())
@@ -44,13 +45,11 @@ public class TransacaoService {
                     .orElseThrow(() -> new EntityNotFoundException("Categoria nao encontrada"));
         }
 
-
         if (request.tipoRecorrencia() == null || request.tipoRecorrencia() == TipoRecorrencia.UNICA) {
             Transacao transacao = construirTransacao(usuario, conta, categoria, request, null, null);
             Transacao salva = transacaoRepository.save(transacao);
             return List.of(TransacaoResponse.from(salva));
         }
-
 
         SerieTransacao serie = new SerieTransacao();
         serie.setUsuario(usuario);
@@ -71,11 +70,10 @@ public class TransacaoService {
         }
 
         List<Transacao> salvas = transacaoRepository.saveAll(transacoesGeradas);
-
         return salvas.stream().map(TransacaoResponse::from).toList();
     }
 
-    private Transacao construirTransacao(Usuario usuario, Conta conta, Categoria categoria, CriarTransacaoRequest request, SerieTransacao serie, Integer parcelaAtual) {
+    private Transacao construirTransacao(Usuario usuario, Conta conta, Categoria categoria,CriarTransacaoRequest request, SerieTransacao serie, Integer parcelaAtual) {
         Transacao transacao = new Transacao();
         transacao.setUsuario(usuario);
         transacao.setConta(conta);
@@ -83,17 +81,16 @@ public class TransacaoService {
         transacao.setSerie(serie);
         transacao.setDescricao(request.descricao());
         transacao.setValor(request.valor());
-        transacao.setTipo(request.tipoTransacao());
-        transacao.setStatus(request.statusTransacao());
+        transacao.setTipo(request.tipo());
+        transacao.setStatus(request.status());
         transacao.setDataTransacao(request.dataTransacao());
         transacao.setParcelaAtual(parcelaAtual);
         return transacao;
     }
 
-
     @Transactional
-    public List<TransacaoResponse> criarTransferencia(Long usuarioId, CriarTransferenciaRequest request) {
-        Usuario usuario = usuarioRepository.findById(usuarioId)
+    public List<TransacaoResponse> criarTransferencia(CriarTransferenciaRequest request) {
+        Usuario usuario = usuarioRepository.findById(request.usuarioId())
                 .orElseThrow(() -> new EntityNotFoundException("Usuario nao encontrado"));
 
         Conta contaOrigem = contaRepository.findById(request.contaOrigemId())
@@ -108,7 +105,7 @@ public class TransacaoService {
         saida.setDescricao(request.descricao());
         saida.setValor(request.valor());
         saida.setTipo(TipoTransacao.TRANSFERENCIA_SAIDA);
-        saida.setStatus(request.statusTransacao());
+        saida.setStatus(request.status());
         saida.setDataTransacao(request.dataTransacao());
 
         Transacao entrada = new Transacao();
@@ -117,21 +114,18 @@ public class TransacaoService {
         entrada.setDescricao(request.descricao());
         entrada.setValor(request.valor());
         entrada.setTipo(TipoTransacao.TRANSFERENCIA_ENTRADA);
-        entrada.setStatus(request.statusTransacao());
+        entrada.setStatus(request.status());
         entrada.setDataTransacao(request.dataTransacao());
-
 
         Transacao saidaSalva = transacaoRepository.save(saida);
         entrada.setTransacaoRelacionada(saidaSalva);
         Transacao entradaSalva = transacaoRepository.save(entrada);
-
 
         saidaSalva.setTransacaoRelacionada(entradaSalva);
         transacaoRepository.save(saidaSalva);
 
         return List.of(TransacaoResponse.from(saidaSalva), TransacaoResponse.from(entradaSalva));
     }
-
 
     public List<TransacaoResponse> listarPorConta(Long contaId) {
         return transacaoRepository.findByContaId(contaId).stream()
@@ -141,14 +135,13 @@ public class TransacaoService {
 
     public TransacaoResponse buscarPorId(Long id) {
         Transacao transacao = transacaoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Transacao nao encontrada"));
+                .orElseThrow(() -> new EntityNotFoundException(TRANSACAO_NAO_ENCONTRADA));
         return TransacaoResponse.from(transacao);
     }
 
-
     public TransacaoResponse atualizar(Long id, AtualizarTransacaoRequest request) {
         Transacao transacao = transacaoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Transacao nao encontrada"));
+                .orElseThrow(() -> new EntityNotFoundException(TRANSACAO_NAO_ENCONTRADA));
 
         Categoria categoria = null;
         if (request.categoriaId() != null) {
@@ -158,8 +151,8 @@ public class TransacaoService {
 
         transacao.setDescricao(request.descricao());
         transacao.setValor(request.valor());
-        transacao.setTipo(request.tipoTransacao());
-        transacao.setStatus(request.statusTransacao());
+        transacao.setTipo(request.tipo());
+        transacao.setStatus(request.status());
         transacao.setDataTransacao(request.dataTransacao());
         transacao.setCategoria(categoria);
 
@@ -169,8 +162,7 @@ public class TransacaoService {
     @Transactional
     public void deletar(Long id) {
         Transacao transacao = transacaoRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Transacao nao encontrada"));
-
+                .orElseThrow(() -> new EntityNotFoundException(TRANSACAO_NAO_ENCONTRADA));
 
         if (transacao.getTransacaoRelacionada() != null) {
             transacaoRepository.delete(transacao.getTransacaoRelacionada());
